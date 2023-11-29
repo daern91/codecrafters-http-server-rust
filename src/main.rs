@@ -3,6 +3,7 @@ use std::{
     io::Read,
     io::Write,
     net::{TcpListener, TcpStream},
+    thread,
 };
 
 fn main() {
@@ -17,7 +18,7 @@ fn main() {
         match stream {
             Ok(stream) => {
                 println!("accepted new connection");
-                let _ = handle_connection(stream);
+                thread::spawn(move || handle_connection(stream));
             }
             Err(e) => {
                 println!("error: {}", e);
