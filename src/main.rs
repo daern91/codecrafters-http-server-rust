@@ -10,14 +10,11 @@ fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    // Uncomment this block to pass the first stage
-    // allow user to pass in --directory <directory> to serve files from
     let args: Vec<String> = std::env::args().collect();
     let mut directory = String::from(".");
     if args.len() == 3 && args[1] == "--directory" {
         directory = args[2].clone();
     }
-    // println!("Serving directory: {}", directory);
 
     let listener = TcpListener::bind("127.0.0.1:4221").unwrap();
 
@@ -36,7 +33,7 @@ fn main() {
 }
 
 fn handle_connection(mut stream: TcpStream, directory: String) -> std::io::Result<()> {
-    let mut buffer = [0; 1024]; // max size of 1024 bytes
+    let mut buffer = [0; 1024 * 10]; // max size of 1024*10 bytes
     stream.read(&mut buffer)?;
 
     let request = String::from_utf8_lossy(&buffer[..]);
@@ -66,25 +63,28 @@ fn handle_connection(mut stream: TcpStream, directory: String) -> std::io::Resul
             );
             stream.write(response.as_bytes())?;
         } else if path.starts_with("/files/") {
-            // check if file exists
-            let file_path = path.split("/files/").nth(1).unwrap();
-            let file = std::fs::read_to_string(directory + "/" + file_path);
-            if let Ok(file) = file {
-                let response = format!(
+            let method = first_line.split_whitespace().nth(0).unwrap();
+            if method == "GET" {
+                let file_path = path.split("/files/").nth(1).unwrap();
+                let file = std::fs::read_to_string(directory + "/" + file_path);
+                if let Ok(file) = file {
+                    let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
                     file.len(),
                     file
                 );
-                stream.write(response.as_bytes())?;
-            } else {
-                stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
+                    stream.write(response.as_bytes())?;
+                } else {
+                    stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
+                }
+            } else if method == "POST" {
+                let mut body = lines.last().unwrap();
+                let file_path = path.split("/files/").nth(1).unwrap();
+                let mut file = std::fs::File::create(directory + "/" + file_path)?;
+                println!("body: {}", body);
+                file.write(body.as_bytes())?;
+                stream.write(b"HTTP/1.1 201 Created\r\n\r\n")?;
             }
-            // let response = format!(
-            //     "HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n{}",
-            //     user_agent.len(),
-            //     user_agent
-            // );
-            // stream.write(response.as_bytes())?;
         } else {
             stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
         }
