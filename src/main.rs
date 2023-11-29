@@ -35,32 +35,31 @@ fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
     request.lines().for_each(|line| println!("{}", line));
     let mut lines = request.lines();
     let first_line = lines.next().unwrap();
-    let _host = lines.next().unwrap();
-    let user_agent_full = lines.next().unwrap();
-    let user_agent = user_agent_full.split(" ").nth(1).unwrap();
-    let _accept = lines.next().unwrap();
-    let path = first_line.split_whitespace().nth(1).unwrap();
-
-    if path == "/" {
-        stream.write(b"HTTP/1.1 200 OK\r\n\r\n")?;
-    } else if path.starts_with("/echo/") {
-        let echo = path.split("/echo/").nth(1).unwrap();
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
-            echo.len(),
-            echo
-        );
-        stream.write(response.as_bytes())?;
-    } else if path.starts_with("/user-agent") {
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
-            user_agent.len(),
-            user_agent
-        );
-        stream.write(response.as_bytes())?;
-    } else {
-        stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
+    if let Some(path) = first_line.split_whitespace().nth(1) {
+        if path == "/" {
+            stream.write(b"HTTP/1.1 200 OK\r\n\r\n")?;
+        } else if path.starts_with("/echo/") {
+            let echo = path.split("/echo/").nth(1).unwrap();
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                echo.len(),
+                echo
+            );
+            stream.write(response.as_bytes())?;
+        } else if path.starts_with("/user-agent") {
+            let _host = lines.next().unwrap();
+            let user_agent_full = lines.next().unwrap();
+            let user_agent = user_agent_full.split(" ").nth(1).unwrap();
+            let _accept = lines.next().unwrap();
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}",
+                user_agent.len(),
+                user_agent
+            );
+            stream.write(response.as_bytes())?;
+        } else {
+            stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
+        }
     }
-
     Ok(())
 }
