@@ -78,10 +78,16 @@ fn handle_connection(mut stream: TcpStream, directory: String) -> std::io::Resul
                     stream.write(b"HTTP/1.1 404 Not Found\r\n\r\n")?;
                 }
             } else if method == "POST" {
-                let mut body = lines.last().unwrap();
                 let file_path = path.split("/files/").nth(1).unwrap();
                 let mut file = std::fs::File::create(directory + "/" + file_path)?;
-                println!("body: {}", body);
+
+                let mut _body = lines.last().unwrap();
+                let mut body = format!("{}", _body.trim());
+                // remove all \x00 characters at the end of the string.
+                while body.ends_with("\x00") {
+                    body.pop();
+                }
+
                 file.write(body.as_bytes())?;
                 stream.write(b"HTTP/1.1 201 Created\r\n\r\n")?;
             }
