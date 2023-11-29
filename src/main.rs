@@ -1,5 +1,5 @@
 // Uncomment this block to pass the first stage
-use std::net::TcpListener;
+use std::{io::Write, net::TcpListener};
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -11,8 +11,13 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(_stream) => {
+            Ok(mut stream) => {
                 println!("accepted new connection");
+                // _stream.write_fmt(b"HTTP/1.1 200 OK\r\n\r\n")
+                let response = b"HTTP/1.1 200 OK\r\n\r\n";
+                if let Ok(_) = stream.write(response) {
+                    println!("successfully wrote to stream");
+                }
             }
             Err(e) => {
                 println!("error: {}", e);
